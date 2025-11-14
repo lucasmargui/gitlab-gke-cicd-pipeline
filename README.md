@@ -156,3 +156,74 @@ Some operations may require authentication; define a password for the gitlab-run
 sudo passwd gitlab-runner
 ```
 
+# ☁️ Authenticate GitLab Runner to Google Cloud
+
+This section explains how to authenticate the GitLab Runner (running on your VM/Bastion Host) with Google Cloud, allowing the runner to interact with GKE or other GCP services during CI/CD pipelines.
+
+## Step 1 – Switch User
+
+Switch to the gitlab-runner user so that all Google Cloud credentials are stored under this user’s home directory.
+This ensures correct permissions during pipeline execution.
+```
+su gitlab-runner
+```
+
+## Step 2 – Configure GCloud Account
+
+Set your Google Cloud account and initialize the gcloud CLI.
+This step configures the project, region, and other defaults for future commands.
+```
+gcloud config set account account-name@gmail.com
+gcloud init
+```
+
+During gcloud init, follow the prompts to:
+
+- Choose or log into your Google account
+- Select the GCP project
+- Set the default compute region/zone
+
+## Step 3 – Authenticate
+
+Authenticate the GitLab Runner to Google Cloud to enable secure access to GKE or other services.
+```
+gcloud auth login
+```
+
+☸️ Connect to GKE Cluster
+
+This section explains how to configure your GitLab Runner (or any VM acting as a Bastion) to connect securely to your Google Kubernetes Engine (GKE) cluster.
+
+## Step 1 – Retrieve Credentials
+
+From the GKE Console → Your Cluster → Three-dots menu → Connect, copy the authentication command provided by Google Cloud.
+
+Use the command to fetch cluster credentials and update your local kubeconfig:
+```
+gcloud container clusters get-credentials <cluster-name> --region <region> --project <project-id>
+```
+
+This step ensures that your GitLab Runner can authenticate and communicate with the GKE API.
+
+## Step 2 – Install GCloud Components (if required)
+
+Some environments require the GKE gcloud auth plugin for kubectl authentication.
+
+Install the components:
+```
+gcloud components install gke-gcloud-auth-plugin
+sudo apt-get install google-cloud-sdk-gke-gcloud-auth-plugin
+```
+This plugin enables kubectl to authenticate through gcloud for GKE clusters.
+
+## Step 3 – Validate Access
+
+Verify that your GitLab Runner can successfully communicate with the GKE cluster:
+
+```
+kubectl get nodes
+```
+
+If you see the list of nodes, the connection is fully working.
+
+📦 CI/CD Pipeline Structure
