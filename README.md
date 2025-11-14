@@ -35,7 +35,8 @@ A complete DevOps workflow demonstrating how to configure Docker, GitLab Runner,
 
 # 📐 Architeture Diagram
 
-<img width="1240" height="776" alt="image" src="https://github.com/user-attachments/assets/540043b5-301d-4b2c-a2b3-f4272fe47181" />
+<img width="1276" height="677" alt="image" src="https://github.com/user-attachments/assets/499302aa-c119-4e1c-99ec-03d97f5fabaa" />
+
 
 This diagram represents a **CI/CD (Continuous Integration / Continuous Deployment) workflow** using GitLab, Docker, and GKE (Google Kubernetes Engine). Each component of the workflow is detailed below.
 
