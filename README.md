@@ -17,12 +17,50 @@ A complete DevOps workflow demonstrating how to configure Docker, GitLab Runner,
 
 # 📘 Table of Contents
 
+- [📐 Architecture Diagram](#-architeture-diagram)
 - [📌 Overview](#-overview)
-- [🖼️ Architecture Diagram](#️-architecture-diagram)
 - [🐳 Add Docker to the Instance](#-add-docker-to-the-instance)
 - [🧩 GitLab – Bastion VM Setup](#-gitlab--bastion-vm-setup)
 - [🚀 Add and Configure GitLab Runner](#-add-and-configure-gitlab-runner)
-- [☁️ Authenticate GitLab Runner to Google Cloud](#️-authenticate-gitlab-runner-to-google-cloud)
+- [🌥 Authenticate GitLab Runner to Google Cloud](#-authenticate-gitlab-runner-to-google-cloud)
+- [🌥 Connect to GKE Cluster](#-connect-to-gke-cluster)  
+- [📦 Deploy Pipeline to a Kubernetes Cluster](#-deploy-pipeline-to-a-kubernetes-cluster)  
+- [🌥 Publishing Applications to the Kubernetes Cluster](#-publishing-applications-to-the-kubernetes-cluster)  
+- [🚦 Creating a LoadBalancer for External Access](#-creating-a-loadbalancer-for-external-access)  
+- [🧪 Load Testing Your Microservices with Loader.io](#-load-testing-your-microservices-with-loaderio)  
+
+---
+
+
+
+# 📐 Architeture Diagram
+
+<img width="1240" height="776" alt="image" src="https://github.com/user-attachments/assets/540043b5-301d-4b2c-a2b3-f4272fe47181" />
+
+This diagram represents a **CI/CD (Continuous Integration / Continuous Deployment) workflow** using GitLab, Docker, and GKE (Google Kubernetes Engine). Each component of the workflow is detailed below.
+
+## 🛠 Components
+
+### GitLab
+- Acts as the starting point of the workflow.
+- Stores the project's source code.
+- Contains CI/CD pipelines to automate building, testing, and deployment.
+
+### Bastion VM
+- A virtual machine that serves as a secure bridge between GitLab and Google Cloud infrastructure.
+- Hosts the **GitLab Runner** to execute pipeline jobs.
+
+### Docker
+- Installed on the Bastion VM to build container images from the project code.
+- These containers are deployed and run in the production environment.
+
+### Load Balancer
+- Distributes incoming network traffic across multiple container instances or GKE nodes.
+- Ensures high availability and load balancing.
+
+### GKE Cluster & Nodes
+- The **GKE Cluster** is the Kubernetes environment where Docker containers are deployed.
+- **GKE Nodes** are the underlying virtual or physical machines running the pods with the project’s containers.
 
 ---
 
@@ -36,21 +74,16 @@ This repository demonstrates a complete workflow:
 - Assign permissions (sudo, docker groups, sudoers file)  
 - Authenticate GitLab Runner to Google Cloud  
 - Connect to a GKE Kubernetes cluster  
-- Deploy containers through GitLab CI/CD  
-
-This repository is ideal for **DevOps bootcamps, CI/CD tutorials, and hands-on cloud workshops**.
-
----
-
-# 🖼️ Architecture Diagram
-
-> 🔧 *Replace with an actual image later — placeholder below.*
-
-![Architecture Diagram](https://via.placeholder.com/1200x500.png?text=Architecture+Diagram+Here)
+- Deploy containers through GitLab CI/CD
 
 ---
 
 # 🐳 Add Docker to the Instance
+
+To enable containerized workloads on your VM, Docker must be installed and configured.
+In this step, we download Docker using the official convenience script and install it directly on the instance.
+
+<details><summary>Click to show details</summary> 
 
 ## Step 1 – Download Docker Installer
 ```sh
@@ -62,7 +95,22 @@ curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 ```
 
+</details>
+
+---
+
 # 🧩 GitLab – Bastion VM Setup
+
+Before connecting GitLab CI/CD to your Kubernetes cluster, you must configure a Bastion VM.
+This VM acts as a secure bridge between GitLab Runner and your GKE cluster, ensuring controlled access and centralized deployment operations.
+
+- The Bastion VM will:
+- Host the GitLab Runner
+- Hold Kubernetes credentials (kubeconfig)
+- Execute kubectl commands triggered by your GitLab pipeline
+- Provide an isolated and secure environment for deployments
+
+<details><summary>Click to show details</summary>  
 
 ## Step 1 – Create GitLab Project
 
@@ -84,7 +132,15 @@ git commit -m "Initial commit"
 git push
 ```
 
+</details>
+
+---
+
 # 🚀 Add and Configure GitLab Runner
+
+This section guides you through installing, registering, and configuring a GitLab Runner. The Runner acts as the bridge between your GitLab CI/CD pipelines and your infrastructure, executing jobs and deploying your applications efficiently. We'll cover adding the Runner to your system, granting necessary permissions, and connecting it to your GitLab project for seamless automation.
+
+<details><summary>Click to show details</summary> 
 
 ## Step 1 – Install GitLab Runner in Bastion
 
@@ -151,9 +207,15 @@ Some operations may require authentication; define a password for the gitlab-run
 sudo passwd gitlab-runner
 ```
 
-# ☁️ Authenticate GitLab Runner to Google Cloud
+</details>
+
+---
+
+# 🌥 Authenticate GitLab Runner to Google Cloud
 
 This section explains how to authenticate the GitLab Runner (running on your VM/Bastion Host) with Google Cloud, allowing the runner to interact with GKE or other GCP services during CI/CD pipelines.
+
+<details><summary>Click to show details</summary>  
 
 ## Step 1 – Switch User
 
@@ -185,9 +247,15 @@ Authenticate the GitLab Runner to Google Cloud to enable secure access to GKE or
 gcloud auth login
 ```
 
-☸️ Connect to GKE Cluster
+</details>
+
+---
+
+# 🌥 Connect to GKE Cluster
 
 This section explains how to configure your GitLab Runner (or any VM acting as a Bastion) to connect securely to your Google Kubernetes Engine (GKE) cluster.
+
+<details><summary>Click to show details</summary> 
 
 ## Step 1 – Retrieve Credentials
 
@@ -221,11 +289,15 @@ kubectl get nodes
 
 If you see the list of nodes, the connection is fully working.
 
+</details>
+
+---
+
 # 📦 Deploy Pipeline to a Kubernetes Cluster
 
 This section explains how to build Docker images for multiple microservices, push them to Docker Hub, and then deploy them into a GKE Kubernetes cluster using GitLab CI/CD.
 
----
+<details><summary>Click to show details</summary> 
 
 ## Step 1 – Docker Login on the Bastion Host
 
@@ -330,12 +402,16 @@ This ensures each microservice is built and delivered independently—following 
 
 <details><summary>Click to show details</summary> <img width="906" height="405" alt="image" src="https://github.com/user-attachments/assets/1c6fca60-1819-4809-80a5-c56533079ca8" /> </details>
 
+</details>
 
+---
 
-# ☸️ Publishing Applications to the Kubernetes Cluster
+# 🌥 Publishing Applications to the Kubernetes Cluster
 
 Once the CI pipeline completes the build and pushes the Docker images to your registry, the next step is deploying both microservices into the GKE cluster.
 This section shows how to create Kubernetes Deployment manifests and automate the deployment through GitLab CI/CD.
+
+<details><summary>Click to show details</summary>  
 
 ## Step 1 – Create Kubernetes Deployment Files
 
@@ -473,11 +549,16 @@ Expected result:
 
 This confirms both microservices are successfully deployed and running.
 
+</details>
 
-# 🚦 6. Creating a LoadBalancer for External Access
+---
+
+# 🚦 Creating a LoadBalancer for External Access
 
 After deploying both microservices to the Kubernetes cluster, they are currently reachable only inside the cluster’s internal network.
 To make them accessible from the internet, we need to expose them externally — and the standard way to do this in GKE is by using a Service of type LoadBalancer.
+
+<details><summary>Click to show details</summary> 
 
 ## Step 1 — Why We Need a LoadBalancer
 
@@ -562,6 +643,9 @@ Every time you refresh this URL:
 - You may hit Pod A, B, or C depending on the round-robin behavior
 - If you print the Pod name inside the HTML response, you can visually observe load balancing in action
 
+</details>
+
+---
 
 # 🧪 Load Testing Your Microservices with Loader.io
 
@@ -574,6 +658,8 @@ Load testing validates:
 - If your architecture is production-ready
 
 Below is a complete, polished guide on integrating Loader.io into your Kubernetes workflow.
+
+<details><summary>Click to show details</summary> 
 
 ## Step 1 — Creating Your Loader.io Account
 
@@ -779,3 +865,7 @@ Choose node scaling when:
 - You want room for future Pod scaling
   
 More nodes = more room for Pods, but does not create Pods by itself.
+
+</details
+
+---
