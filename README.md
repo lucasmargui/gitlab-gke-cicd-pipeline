@@ -337,3 +337,143 @@ This ensures each microservice is built and delivered independently—following 
 
 
 
+# ☸️ Publishing Applications to the Kubernetes Cluster
+
+Once the CI pipeline completes the build and pushes the Docker images to your registry, the next step is deploying both microservices into the GKE cluster.
+This section shows how to create Kubernetes Deployment manifests and automate the deployment through GitLab CI/CD.
+
+## Step 1 – Create Kubernetes Deployment Files
+
+Inside the root directory of the repository, create two deployment files:
+
+```
+deploy-micro1.yml
+deploy-micro2.yml
+```
+
+Each file will define the Kubernetes Deployment specification, including:
+
+- The number of replicas (desired number of Pods)
+- The container image to pull from Docker Hub
+- Labels used for identification and service selection
+- Container port exposed inside the Pod
+
+
+#### Example: deploy-micro1.yml
+```
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+ name: micro1-deployment
+ labels: 
+   app: micro1 
+spec: 
+ replicas: 3 
+ selector: 
+   matchLabels: 
+     app: micro1 
+ template: 
+   metadata: 
+     labels: 
+       app: micro1 
+   spec: 
+     containers: 
+     - name: micro1 
+       image: <dockerhub-username>/micro1:latest
+       ports: 
+       - containerPort: 80 
+```
+
+#### Example: deploy-micro2.yml
+
+```
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+ name: micro2-deployment
+ labels: 
+   app: micro2 
+spec: 
+ replicas: 2 
+ selector: 
+   matchLabels: 
+     app: micro2 
+ template: 
+   metadata: 
+     labels: 
+       app: micro2 
+   spec: 
+     containers: 
+     - name: micro2 
+       image: <dockerhub-username>/micro2:latest
+       ports: 
+       - containerPort: 8080
+```
+
+
+📌 What Do the “Replicas” and “Pods” Mean?
+
+A Pod is the smallest deployable unit in Kubernetes.
+It represents one running instance of your containerized application.
+
+The replicas field determines how many Pods of that microservice Kubernetes should keep running.
+
+In our example:
+
+- micro1 has replicas: 3
+  → Kubernetes will create 3 Pods, each running the micro1 container.
+
+- micro2 has replicas: 2
+  → Kubernetes will create 2 Pods, each running the micro2 container.
+
+If one Pod stops working, Kubernetes will automatically create a new one to maintain the desired replica count.
+This ensures high availability and resilience.
+
+#### Example scenario
+
+Imagine micro1 receives more traffic.
+Because it has 3 Pods, Kubernetes can distribute requests across them (load balancing), avoiding overload on a single instance.
+
+
+## Step 2 – Add Kubernetes Deployment Job to .gitlab-ci.yml
+
+Add the deployment stage to your pipeline so it automatically applies the manifests to your GKE cluster:
+```
+kubernetes:
+  stage: deploy
+  needs:
+    - criar_imagens
+  tags:
+    - gcp
+  script:
+  - kubectl apply -f ./deploy-micro1.yml
+  - kubectl apply -f ./deploy-micro2.yml
+```
+
+Your pipeline now consists of two main phases:
+
+- Build – Builds and pushes images
+- Deploy – Applies Kubernetes manifests to the GKE cluster
+
+
+## Step 3 – Commit and Push Deployment Configuration
+
+```
+git add .
+git commit -m "Add Kubernetes deployment pipeline"
+git push
+```
+
+## Step 4 – Validate the Pods Running in the Cluster
+
+After the deployment job completes, connect to your bastion / GitLab Runner VM and run:
+```
+kubectl get pods
+```
+
+Expected result:
+
+- 3 pods running for microservice 1
+- 2 pods running for microservice 2
+
+This confirms both microservices are successfully deployed and running.
