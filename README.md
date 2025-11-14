@@ -1,4 +1,4 @@
-# 🚀 Bootcamp DevOps – GitLab Runner + Docker + GKE CI/CD Pipeline
+# 🚀DevOps – GitLab Runner + Docker + GKE CI/CD Pipeline
 
 A complete DevOps workflow demonstrating how to configure Docker, GitLab Runner, Google Cloud authentication, and deployment to a Kubernetes cluster on GKE using GitLab CI/CD.
 
@@ -23,11 +23,6 @@ A complete DevOps workflow demonstrating how to configure Docker, GitLab Runner,
 - [🧩 GitLab – Bastion VM Setup](#-gitlab--bastion-vm-setup)
 - [🚀 Add and Configure GitLab Runner](#-add-and-configure-gitlab-runner)
 - [☁️ Authenticate GitLab Runner to Google Cloud](#️-authenticate-gitlab-runner-to-google-cloud)
-- [☸️ Connect to GKE Cluster](#️-connect-to-gke-cluster)
-- [📦 CI/CD Pipeline Structure](#-cicd-pipeline-structure)
-- [📜 Full .gitlab-ci.yml Example](#-full-gitlab-ciyml-example)
-- [📂 Project Structure](#-project-structure)
-- [🧾 License](#-license)
 
 ---
 
@@ -566,3 +561,221 @@ Every time you refresh this URL:
 - Kubernetes forwards each request to one of the available Pods
 - You may hit Pod A, B, or C depending on the round-robin behavior
 - If you print the Pod name inside the HTML response, you can visually observe load balancing in action
+
+
+# 🧪 Load Testing Your Microservices with Loader.io
+
+After exposing your microservices through a Kubernetes LoadBalancer, the next crucial step is performance testing.
+Load testing validates:
+
+- How your applications behave under heavy traffic
+- Whether your infrastructure scales properly
+- How replicas and nodes respond to stress
+- If your architecture is production-ready
+
+Below is a complete, polished guide on integrating Loader.io into your Kubernetes workflow.
+
+## Step 1 — Creating Your Loader.io Account
+
+1. Access https://loader.io
+2. Create an account and log in
+3 Add a new Target Host
+  - This will be the external IP of your LoadBalancer
+  - Example: http://34.94.15.128
+
+This is the endpoint Loader.io will stress test.
+
+## Step 2 — Verifying Domain Ownership
+
+Loader.io requires verification to ensure the tested endpoint belongs to you.
+You will receive a verification token, for example:
+
+```
+loaderio-123456789abcdef.txt
+```
+
+### Create the verification file in microservice 1
+
+Place the token file inside microservice 1 (app1):
+
+```
+app1/loaderio-123456789abcdef.txt
+```
+This ensures Loader.io can validate your service.
+
+## Step 3 — Building Test-Specific Docker Images
+
+Since the verification file must be packaged inside the image, you need a new Docker image dedicated to testing.
+1. Update your Dockerfile to include the new token file.
+2. Build the image with a new tag, for example test.
+
+Update your .gitlab-ci.yml to build your test images:
+
+```
+variables:
+  VERSION: "test"
+```
+
+## Step 4 — Updating Deployments to Use the Test Image
+
+Modify the deployment file for microservice 1:
+
+Update your .deploy-micro1.yml to build your test images:
+```
+containers: 
+- name: micro1 
+  image: <dockerhub-username>/micro1:test
+  ports: 
+  - containerPort: 80
+```
+
+Update your .deploy-micro2.yml to build your test images:
+```
+containers: 
+- name: micro2 
+  image: <dockerhub-username>/micro2:test
+  ports: 
+  - containerPort: 8080
+```
+
+These new images now contain the Loader.io verification file.
+
+## Step 5 — Commit and Push to Run the Pipeline
+
+```
+git add .
+git commit -m "Add Loader.io token and test images"
+git push
+```
+
+GitLab CI/CD will:
+
+- Build the test images
+- Push them to Docker Hub
+- Deploy updated pods to the Kubernetes cluster
+
+You can confirm new pods were created using:
+
+```
+kubectl get pods
+```
+
+## Step 6 — Verifying the Loader.io Token
+
+Back on Loader.io:
+
+- Go to Verification
+- Click Verify
+
+Loader.io requests your LoadBalancer endpoint and checks the presence of the token file inside the microservice.
+Once verified, you can proceed to test execution.
+
+## Step 7 — Running Your Load Tests
+
+Now you can execute load tests using Loader.io profiles such as:
+- Linear load
+- Spike traffic
+- Clients per second
+- Clients per minute
+
+Evaluate:
+- Response time
+- Error rates
+- Timeouts
+- Throughput
+
+Example test scenarios
+
+### Test #1 — 500 clients per minute
+Good for baseline performance validation.
+
+### Test #2 — 10,000 clients per minute
+Used to evaluate scaling behavior and infrastructure resilience.
+
+If your application maintains low latency and zero errors under high load, your cluster is correctly handling traffic.
+
+## Step 8 — Scaling if Needed
+
+After running your load tests, you may determine that your current setup is not handling traffic efficiently.
+Kubernetes allows two primary scaling strategies:
+
+- Scaling Pods (application-level scaling)
+- Scaling Nodes (infrastructure-level scaling)
+
+Both serve different purposes and should be used depending on the performance bottleneck observed.
+
+### 🟦 Option A — Increase Pod Replicas (Horizontal Scaling of Workloads)
+
+This option scales your application, not the cluster.
+
+If your microservice needs to handle more concurrent requests, you can increase the number of Pods running the same container image.
+
+Pods are the actual running instances of your application — adding more replicas increases your parallel processing capacity.
+
+#### 🔧 How to Scale Pods
+
+Update the Deployment file (deploy-micro1.yml):
+
+```
+spec:
+  replicas: 6
+```
+
+Then apply your standard Git flow:
+
+```
+git add .
+git commit -m "Increase replicas for microservice 1"
+git push
+```
+
+Kubernetes will then:
+
+- Create additional Pods (from 3 → 6, in this example)
+- Distribute them across available nodes
+- Update the LoadBalancer to route traffic evenly across all Pods
+
+#### 📌 When to Use This Option
+
+Choose Pod scaling when:
+
+- CPU usage per Pod is high
+- Requests are timing out even though nodes have available resources
+- Your application needs more "instances" to handle traffic
+
+This is typically the first and most common scaling action.
+
+### 🟩 Option B — Increase Kubernetes Nodes (Scaling the Cluster Infrastructure)
+
+Scaling nodes expands the infrastructure capacity of your cluster, not the number of Pods directly.
+
+#### 🛑 Important Clarification
+
+Adding more nodes does NOT automatically increase the number of Pods.
+It only increases the available compute resources (CPU, RAM) the cluster can use.
+
+Pods will only increase if:
+
+- You manually increase replica counts
+or
+- You use Horizontal Pod Autoscaler (HPA)
+
+So a node is NOT a “container” — it's a VM that hosts Pods.
+
+#### 🔧 How to Scale Nodes
+
+If you determine the cluster is running out of CPU/RAM capacity:
+
+- Add more nodes to the node pool
+- Or enable cluster autoscaling to let GKE add/remove nodes automatically
+
+#### 📌 When to Use This Option
+
+Choose node scaling when:
+
+- Pods are stuck in Pending state due to insufficient resources
+- Your node(s) frequently hit CPU/memory limits
+- You need higher availability across more physical machines
+- You want room for future Pod scaling
+  
+More nodes = more room for Pods, but does not create Pods by itself.
