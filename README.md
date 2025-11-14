@@ -561,6 +561,7 @@ To make them accessible from the internet, we need to expose them externally —
 
 <details><summary>Click to show details</summary> 
 
+
 ## Step 1 — Why We Need a LoadBalancer
 
 We currently have:
@@ -580,6 +581,8 @@ That’s exactly the job of a LoadBalancer:
 Client Request → LoadBalancer → Pod 1 / Pod 2 / Pod 3
 
 This ensures availability, scalability, and fault tolerance — if one Pod fails, Kubernetes automatically routes traffic to the remaining replicas.
+
+<img width="2029" height="711" alt="image" src="https://github.com/user-attachments/assets/2b6e9e36-ea58-45ef-a01d-23355f0df3e8" />
 
 ## Step 2 — Creating the LoadBalancer for Microservice 1
 
