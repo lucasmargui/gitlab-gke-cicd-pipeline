@@ -226,4 +226,114 @@ kubectl get nodes
 
 If you see the list of nodes, the connection is fully working.
 
-📦 CI/CD Pipeline Structure
+# 📦 Deploy Pipeline to a Kubernetes Cluster
+
+This section explains how to build Docker images for multiple microservices, push them to Docker Hub, and then deploy them into a GKE Kubernetes cluster using GitLab CI/CD.
+
+---
+
+## Step 1 – Docker Login on the Bastion Host
+
+Before running the pipeline, the GitLab Runner (running on your GCP bastion VM) must be authenticated to Docker Hub.
+
+This is required to allow the runner to build and push images.
+
+```sh
+docker login
+```
+
+## Step 2 – Creating Microservice Directories
+
+To demonstrate how microservices are built, packaged, and deployed, we will create two independent microservices.
+Each service will run its own HTTP server and contain its own HTML response—simulating isolated, scalable components.
+
+Inside your project directory Bootcamp-DevOps-Project-2/, create the following structure:
+
+Create the directories:
+```
+app1/
+app2/
+```
+
+Each directory will contain:
+
+- A Dockerfile running a simple httpd server
+- A small HTML file simulating independent microservices
+
+```
+app1/
+ ├── Dockerfile
+ └── index.html
+
+app2/
+ ├── Dockerfile
+ └── index.html
+```
+
+## Step 3 – Create Dockerfiles for Each Microservice
+
+Each microservice will run using a lightweight Apache HTTP Server (httpd) container.
+
+Below are the Dockerfile examples:
+
+### Example Dockerfile for each app:
+
+#### app1/Dockerfile
+```
+FROM httpd:latest
+
+WORKDIR /usr/local/apache2/htdocs/
+
+COPY * /usr/local/apache2/htdocs/
+
+EXPOSE 80
+```
+
+#### app2/Dockerfile
+```
+FROM httpd:latest
+
+WORKDIR /usr/local/apache2/htdocs/
+
+COPY * /usr/local/apache2/htdocs/
+
+EXPOSE 8080
+```
+
+- app1 will serve content on port 80.
+- app2 will serve content on port 8080 to illustrate independent services running in different ports.
+
+### Example HTML (index.html):
+
+Each microservice will return a simple web page:
+
+#### app1/index.html
+```
+<h1>Microservice 1 - Running</h1>
+```
+
+#### app2/index.html
+```
+<h1>Microservice 2 - Running</h1>
+```
+
+## Step 4 – Creating the CI Pipeline to Build & Push Images
+
+Inside your root project directory, create the pipeline file:
+```
+.gitlab-ci.yml
+```
+
+This pipeline will:
+
+- Build the Docker image for app1
+- Build the Docker image for app2
+- Tag each image properly
+- Push both images to Docker Hub (or your preferred registry)
+
+This ensures each microservice is built and delivered independently—following the core principles of microservice architecture.
+
+<details><summary>Click to show details</summary> <img width="906" height="405" alt="image" src="https://github.com/user-attachments/assets/1c6fca60-1819-4809-80a5-c56533079ca8" /> </details>
+
+
+
