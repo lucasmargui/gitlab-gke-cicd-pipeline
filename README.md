@@ -477,3 +477,92 @@ Expected result:
 - 2 pods running for microservice 2
 
 This confirms both microservices are successfully deployed and running.
+
+
+# 🚦 6. Creating a LoadBalancer for External Access
+
+After deploying both microservices to the Kubernetes cluster, they are currently reachable only inside the cluster’s internal network.
+To make them accessible from the internet, we need to expose them externally — and the standard way to do this in GKE is by using a Service of type LoadBalancer.
+
+## Step 1 — Why We Need a LoadBalancer
+
+We currently have:
+
+ - 3 nodes (VMS) inside the GKE cluster
+ - Microservice 1 running with 3 replicas (pods)
+ - Microservice 2 running with 2 replicas (pods)
+
+Because a Deployment distributes Pods across multiple nodes, we need one single public entry point capable of forwarding traffic to all replicas.
+
+That’s exactly the job of a LoadBalancer:
+
+- It exposes the service to the public internet
+- Kubernetes distributes requests across replica pods
+- Each request may hit a different pod in a round-robin style
+
+Client Request → LoadBalancer → Pod 1 / Pod 2 / Pod 3
+
+This ensures availability, scalability, and fault tolerance — if one Pod fails, Kubernetes automatically routes traffic to the remaining replicas.
+
+## Step 2 — Creating the LoadBalancer for Microservice 1
+
+Create a file named 'lb.yml' and inside it:
+
+```
+apiVersion: v1 
+kind: Service 
+metadata: 
+  name: lb-micro1 
+spec: 
+  selector: 
+    app: micro1 
+  ports: 
+    - port: 80 
+      targetPort: 80 
+  type: LoadBalancer 
+```
+
+- selector.app: micro1
+  Must match the app: micro1 label from the deployment, so Kubernetes knows which Pods to route traffic to.
+
+- port / targetPort: 80
+  Exposes port 80 externally and forwards it to port 80 inside each Pod.
+
+- type: LoadBalancer
+  In GKE, this automatically provisions a Google Cloud external IP, making the service publicly accessible.
+
+## Step 4 — Updating the Pipeline to Apply the LoadBalancer
+
+Edit your .gitlab-ci.yml and ensure the deploy stage includes:
+```
+kubectl apply -f ./lb.yml
+```
+This ensures the LoadBalancer is created automatically during the deploy stage.
+
+## Step 5 — Commit and Push to Trigger the Pipeline
+
+```
+git add .
+git commit -m "Add LoadBalancer service for micro1"
+git push
+```
+Once pushed, the pipeline will deploy the LoadBalancer to the cluster.
+
+## Step 6 — Validating the LoadBalancer
+
+After the pipeline completes, log into your bastion (GitLab Runner VM) and run:
+```
+kubectl get service
+```
+
+You can now access your microservice through the external IP:
+
+```
+http://34.94.15.128
+```
+
+Every time you refresh this URL:
+
+- Kubernetes forwards each request to one of the available Pods
+- You may hit Pod A, B, or C depending on the round-robin behavior
+- If you print the Pod name inside the HTML response, you can visually observe load balancing in action
