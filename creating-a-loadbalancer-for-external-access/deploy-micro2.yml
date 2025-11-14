@@ -1,0 +1,21 @@
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+ name: micro2-deployment
+ labels: 
+   app: micro2 
+spec: 
+ replicas: 2 
+ selector: 
+   matchLabels: 
+     app: micro2 
+ template: 
+   metadata: 
+     labels: 
+       app: micro2 
+   spec: 
+     containers: 
+     - name: micro2 
+       image: <dockerhub-username>/micro2:1.0
+       ports: 
+       - containerPort: 8080
